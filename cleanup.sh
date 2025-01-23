@@ -4,11 +4,10 @@
 helm list -o json | jq -r '.[] | {name: .name, namespace: .namespace, chart: .chart, app_version: .app_version, status: .status}'
 
 FLAG_LABEL="auto-cleanup"  # Replace with your desired label key
-RETENTION_DAYS=7  # Replace with your desired retention period in days
 
 function get_flagged_namespaces() {
     kubectl get namespaces -l "${FLAG_LABEL}=true" -o json |\
-        jq -r '.items[] | {name: .metadata.name, creationTimestamp: .metadata.creationTimestamp}'
+        jq -r '.items[] | {name: .metadata.name, creationTimestamp: .metadata.creationTimestamp, retentionDays: .metadata.labels.retentionDays}'
 }
 
 function should_delete_namespace() {
@@ -49,8 +48,9 @@ function cleanup_flagged_namespaces() {
         echo "$flagged_namespaces" | while read -r ns_info; do
             namespace_name=$(echo "$ns_info" | jq -r '.name')
             creation_timestamp=$(echo "$ns_info" | jq -r '.creationTimestamp')
+            retention_days=$(echo "$ns_info" | jq -r '.retentionDays')
 
-            if should_delete_namespace "$creation_timestamp" "$RETENTION_DAYS"; then
+            if should_delete_namespace "$creation_timestamp" "$retention_days"; then
                 delete_namespace "$namespace_name"
             else
                 echo "Namespace $namespace_name is still within retention period."
