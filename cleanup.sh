@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# List all Helm releases
+helm list -o json | jq -r '.[] | {name: .name, namespace: .namespace, chart: .chart, app_version: .app_version, status: .status}'
+
 FLAG_LABEL="auto-cleanup"  # Replace with your desired label key
 RETENTION_DAYS=7  # Replace with your desired retention period in days
 
